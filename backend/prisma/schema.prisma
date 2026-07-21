@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Item {
+  id           Int      @id @default(autoincrement())
+  code         String   @unique
+  spec         String
+  unit         String
+  
+  monthlyData  ItemMonthly[]
+  transactions DailyTransaction[]
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ItemMonthly {
+  id           Int      @id @default(autoincrement())
+  itemId       Int
+  item         Item     @relation(fields: [itemId], references: [id])
+  
+  month        Int      // e.g., 6 for June
+  year         Int      // e.g., 2026
+  
+  saldoAwal    Int      @default(0)
+  ket          String?
+  handcarry    String?
+  kebutuhanPo  String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@unique([itemId, month, year])
+}
+
+model DailyTransaction {
+  id           Int      @id @default(autoincrement())
+  itemId       Int
+  item         Item     @relation(fields: [itemId], references: [id])
+  
+  date         DateTime // Date of the transaction
+  
+  qtyIn        Int      @default(0) // M (Masuk)
+  qtyOut       Int      @default(0) // K (Keluar)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@unique([itemId, date])
+}
+
+model AuditLog {
+  id           Int      @id @default(autoincrement())
+  user         String   // Nama user dari dropdown
+  action       String   // CREATE, UPDATE, DELETE
+  entity       String   // Item, Transaction, dll
+  entityId     Int
+  detail       String?  // Keterangan detail log
+  oldValue     String?  // JSON string of previous data
+  newValue     String?  // JSON string of new data
+  timestamp    DateTime @default(now())
+}
