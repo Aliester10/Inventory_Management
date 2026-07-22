@@ -4,6 +4,7 @@ import { Dashboard } from './pages/Dashboard';
 import { DailyInput } from './pages/DailyInput';
 import { ImportData } from './pages/ImportData';
 import { MonthlyRecap } from './pages/MonthlyRecap';
+import { ProductReport } from './pages/ProductReport';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="input" element={<DailyInput />} />
           <Route path="recap" element={<MonthlyRecap />} />
           <Route path="import" element={<ImportData />} />
+          <Route path="report/:itemId" element={<ProductReport />} />
         </Route>
       </Routes>
     </Router>

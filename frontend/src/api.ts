@@ -95,6 +95,38 @@ export const api = {
       });
       return res.json();
     }
+  },
+
+  async getProductReports(itemId: string | number) {
+    if (this.isGAS()) {
+      return new Promise((resolve) => {
+        window.google.script.run
+          .withSuccessHandler((res: any) => resolve(res))
+          .withFailureHandler((err: any) => resolve({ success: false, error: err.message || err }))
+          .apiGetProductReports(itemId);
+      });
+    } else {
+      const res = await fetch(`http://localhost:3000/api/reports/${itemId}`);
+      return res.json();
+    }
+  },
+
+  async addProductReport(payload: { itemId: string | number; po: string; tglPo: string; orderQty: number; pic: string; keterangan: string }) {
+    if (this.isGAS()) {
+      return new Promise((resolve) => {
+        window.google.script.run
+          .withSuccessHandler((res: any) => resolve(res))
+          .withFailureHandler((err: any) => resolve({ success: false, error: err.message || err }))
+          .apiAddProductReport(payload);
+      });
+    } else {
+      const res = await fetch('http://localhost:3000/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return res.json();
+    }
   }
 };
 

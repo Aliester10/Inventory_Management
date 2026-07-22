@@ -663,6 +663,56 @@ app.post('/api/products', async (req, res) => {
   }
 });
 
+// 9. Product Reports Endpoints
+app.get('/api/reports/:itemId', async (req, res) => {
+  try {
+    const itemId = parseInt(req.params.itemId);
+    if (isNaN(itemId)) return res.status(400).json({ error: 'Invalid Item ID' });
+
+    const item = await prisma.item.findUnique({
+      where: { id: itemId },
+      include: {
+        productReports: {
+          orderBy: { tglPo: 'desc' }
+        }
+      }
+    });
+
+    if (!item) return res.status(404).json({ error: 'Item not found' });
+
+    res.json({ success: true, data: item });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch product reports' });
+  }
+});
+
+app.post('/api/reports', async (req, res) => {
+  try {
+    const { itemId, po, tglPo, orderQty, pic, keterangan } = req.body;
+    
+    if (!itemId || !po || !tglPo) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const newReport = await prisma.productReport.create({
+      data: {
+        itemId: parseInt(itemId),
+        po,
+        tglPo: new Date(tglPo),
+        orderQty: parseInt(orderQty) || 0,
+        pic: pic || '',
+        keterangan: keterangan || ''
+      }
+    });
+
+    res.json({ success: true, data: newReport, message: 'Report added successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to add product report' });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Backend is running!' });
 });

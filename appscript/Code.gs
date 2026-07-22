@@ -25,6 +25,7 @@ function initializeSetup() {
   getSheet("Master", ["CODE", "SPEC", "UNIT"]);
   getSheet("Transactions", ["CODE", "DATE", "MASUK", "KELUAR"]);
   getSheet("Monthly", ["CODE", "MONTH", "YEAR", "SALDO_AWAL", "KET", "HANDCARRY"]);
+  getSheet("ProductReports", ["CODE", "PO", "TGL_PO", "ORDER_QTY", "PIC", "KETERANGAN"]);
 }
 
 // 3. API: Get Items (for Daily Input)
@@ -193,7 +194,7 @@ function apiGetDashboard() {
       totalKeluar += keluar;
       totalSisa += sisa;
 
-      if (sisa < 10) {
+      if (sisa <= 10) {
         lowStockItems.push({ code: code, spec: spec, sisa: sisa });
       }
     });
@@ -360,3 +361,82 @@ function apiAddProduct(payload) {
   }
 }
 
+// 9. API: Get Product Reports
+function apiGetProductReports(itemId) {
+  try {
+    var code = itemId; // In GAS, itemId is the item CODE
+    var masterSheet = getSheet("Master");
+    var masterData = masterSheet.getDataRange().getValues().slice(1);
+    
+    var itemRow = masterData.find(function(row) { return row[0] == code; });
+    if (!itemRow) return { success: false, error: 'Product not found' };
+    
+    var item = {
+      id: code,
+      code: itemRow[0],
+      spec: itemRow[1],
+      unit: itemRow[2],
+      productReports: []
+    };
+
+    var reportsSheet = getSheet("ProductReports", ["CODE", "PO", "TGL_PO", "ORDER_QTY", "PIC", "KETERANGAN"]);
+    var reportsData = reportsSheet.getDataRange().getValues().slice(1);
+    
+    var productReports = [];
+    reportsData.forEach(function(row, index) {
+      if (row[0] == code) {
+        productReports.push({
+          id: index + 1, // pseudo-id
+          po: row[1],
+          tglPo: row[2],
+          orderQty: row[3],
+          pic: row[4],
+          keterangan: row[5]
+        });
+      }
+    });
+
+    // Sort descending by tglPo
+    productReports.sort(function(a, b) {
+      return new Date(b.tglPo) - new Date(a.tglPo);
+    });
+
+    item.productReports = productReports;
+
+    return { success: true, data: item };
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
+}
+
+// 10. API: Add Product Report
+function apiAddProductReport(payload) {
+  try {
+    var code = payload.itemId;
+    var po = payload.po;
+    var tglPo = payload.tglPo;
+    var orderQty = payload.orderQty || 0;
+    var pic = payload.pic || '';
+    var keterangan = payload.keterangan || '';
+
+    if (!code || !po || !tglPo) {
+      return { success: false, error: 'Missing required fields' };
+    }
+
+    var reportsSheet = getSheet("ProductReports", ["CODE", "PO", "TGL_PO", "ORDER_QTY", "PIC", "KETERANGAN"]);
+    reportsSheet.appendRow([code, po, new Date(tglPo).toISOString(), orderQty, pic, keterangan]);
+
+    var newReport = {
+      id: reportsSheet.getLastRow() - 1,
+      po: po,
+      tglPo: new Date(tglPo).toISOString(),
+      orderQty: orderQty,
+      pic: pic,
+      keterangan: keterangan
+    };
+
+    return { success: true, data: newReport, message: 'Report added successfully' };
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
+}

@@ -189,16 +189,20 @@ export function DailyInput() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-gray-500 font-bold flex flex-col items-center justify-center">
-                  <Loader2 className="animate-spin mb-4" size={48} />
-                  Memuat data...
+                <td colSpan={7} className="p-8 text-center text-gray-500 font-bold">
+                  <div className="flex flex-col items-center justify-center">
+                    <Loader2 className="animate-spin mb-4" size={48} />
+                    Memuat data...
+                  </div>
                 </td>
               </tr>
             ) : filteredItems.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-gray-500 font-bold flex flex-col items-center justify-center">
-                  <AlertCircle size={48} className="mb-4 opacity-20" />
-                  Barang tidak ditemukan.
+                <td colSpan={7} className="p-8 text-center text-gray-500 font-bold">
+                  <div className="flex flex-col items-center justify-center">
+                    <AlertCircle size={48} className="mb-4 opacity-20" />
+                    Barang tidak ditemukan.
+                  </div>
                 </td>
               </tr>
             ) : (

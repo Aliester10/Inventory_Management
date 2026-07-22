@@ -44,7 +44,7 @@ export function Dashboard() {
           </div>
           <div>
             <h3 className="text-xl font-bold mb-2">Saldo Awal</h3>
-            <p className="text-4xl font-black">{data?.totalSaldoAwal || 0}</p>
+            <p className="text-4xl font-black">{(data?.totalSaldoAwal || 0).toLocaleString('id-ID')}</p>
           </div>
           <div className="mt-4">
             <div className="text-sm font-bold bg-white inline-block px-2 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
@@ -59,7 +59,7 @@ export function Dashboard() {
           </div>
           <div>
             <h3 className="text-xl font-bold mb-2">Jumlah Barang Masuk</h3>
-            <p className="text-4xl font-black">{data?.totalMasuk || 0}</p>
+            <p className="text-4xl font-black">{(data?.totalMasuk || 0).toLocaleString('id-ID')}</p>
           </div>
         </div>
 
@@ -69,7 +69,7 @@ export function Dashboard() {
           </div>
           <div>
             <h3 className="text-xl font-bold mb-2">Jumlah Barang Keluar</h3>
-            <p className="text-4xl font-black">{data?.totalKeluar || 0}</p>
+            <p className="text-4xl font-black">{(data?.totalKeluar || 0).toLocaleString('id-ID')}</p>
           </div>
         </div>
 
@@ -79,7 +79,7 @@ export function Dashboard() {
           </div>
           <div>
             <h3 className="text-xl font-bold mb-2">Sisa Barang</h3>
-            <p className="text-4xl font-black">{data?.totalSisa || 0}</p>
+            <p className="text-4xl font-black">{(data?.totalSisa || 0).toLocaleString('id-ID')}</p>
           </div>
         </div>
       </div>
@@ -103,7 +103,7 @@ export function Dashboard() {
                 <tr key={i.code} className="border-b-[3px] border-[#1a1a1a] hover:bg-gray-50 last:border-0">
                   <td className="p-4 border-r-[3px] border-[#1a1a1a] font-mono font-bold">{i.code}</td>
                   <td className="p-4 border-r-[3px] border-[#1a1a1a]">{i.spec}</td>
-                  <td className="p-4 font-black text-red-600">{i.sisa}</td>
+                  <td className="p-4 font-black text-red-600">{(i.sisa || 0).toLocaleString('id-ID')}</td>
                 </tr>
               ))}
               {!data?.lowStockItems?.length && (

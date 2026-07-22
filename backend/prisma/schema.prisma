@@ -15,6 +15,7 @@ model Item {
   
   monthlyData  ItemMonthly[]
   transactions DailyTransaction[]
+  productReports ProductReport[]
   
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -65,4 +66,19 @@ model AuditLog {
   oldValue     String?  // JSON string of previous data
   newValue     String?  // JSON string of new data
   timestamp    DateTime @default(now())
+}
+
+model ProductReport {
+  id           Int      @id @default(autoincrement())
+  itemId       Int
+  item         Item     @relation(fields: [itemId], references: [id])
+  
+  po           String
+  tglPo        DateTime
+  orderQty     Int
+  pic          String
+  keterangan   String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
