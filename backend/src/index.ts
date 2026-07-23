@@ -216,7 +216,7 @@ app.get('/api/dashboard', async (req, res) => {
         spec: item.spec,
         sisa
       };
-    }).filter(i => i.sisa < 10).slice(0, 5);
+    }).filter(i => i.sisa <= 10).sort((a, b) => a.sisa - b.sisa);
 
     res.json({
       success: true,
@@ -314,6 +314,10 @@ app.get('/api/recap', async (req, res) => {
               lte: new Date(year, month, 0) 
             } 
           } 
+        },
+        productReports: {
+          orderBy: { tglPo: 'desc' },
+          take: 1
         }
       }
     });
@@ -324,6 +328,7 @@ app.get('/api/recap', async (req, res) => {
       const handcarry = item.monthlyData[0]?.handcarry || '';
       const masuk = item.transactions.reduce((acc, t) => acc + t.qtyIn, 0);
       const keluar = item.transactions.reduce((acc, t) => acc + t.qtyOut, 0);
+      const latestReport = item.productReports[0];
       return {
         id: item.id,
         code: item.code,
@@ -334,7 +339,9 @@ app.get('/api/recap', async (req, res) => {
         keluar,
         sisa: saldoAwal + masuk - keluar,
         ket,
-        handcarry
+        handcarry,
+        po: latestReport?.po || '',
+        noGr: latestReport?.noGr || ''
       };
     });
 
@@ -360,6 +367,10 @@ app.get('/api/items/daily', async (req, res) => {
           where: { 
             date: { gte: new Date(year, month - 1, 1), lte: queryDate } 
           } 
+        },
+        productReports: {
+          orderBy: { tglPo: 'desc' },
+          take: 1
         }
       }
     });
@@ -376,6 +387,8 @@ app.get('/api/items/daily', async (req, res) => {
       
       // Today's transaction
       const todayTx = item.transactions.find(t => t.date.getTime() === queryDate.getTime());
+      
+      const latestReport = item.productReports[0];
 
       return {
         id: item.id,
@@ -388,6 +401,8 @@ app.get('/api/items/daily', async (req, res) => {
         stock,
         qtyIn: todayTx?.qtyIn || 0,
         qtyOut: todayTx?.qtyOut || 0,
+        po: latestReport?.po || '',
+        noGr: latestReport?.noGr || ''
       };
     });
 
@@ -711,6 +726,48 @@ app.get('/api/reports/:itemId', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to add product report' });
+  }
+});
+
+app.put('/api/reports/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid Report ID' });
+
+    const { po, tglPo, orderQty, pic, noGr, keterangan } = req.body;
+
+    const updated = await prisma.productReport.update({
+      where: { id },
+      data: {
+        po: po !== undefined ? po : undefined,
+        tglPo: tglPo ? new Date(tglPo) : undefined,
+        orderQty: orderQty !== undefined ? parseInt(orderQty) : undefined,
+        pic: pic !== undefined ? pic : undefined,
+        noGr: noGr !== undefined ? noGr : undefined,
+        keterangan: keterangan !== undefined ? keterangan : undefined
+      }
+    });
+
+    res.json({ success: true, data: updated, message: 'Report updated successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to update report' });
+  }
+});
+
+app.delete('/api/reports/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid Report ID' });
+
+    await prisma.productReport.delete({
+      where: { id }
+    });
+
+    res.json({ success: true, message: 'Report deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to delete report' });
   }
 });
 

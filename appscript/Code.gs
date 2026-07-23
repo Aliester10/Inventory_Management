@@ -35,7 +35,7 @@ function apiGetDailyItems(dateString) {
     var txSheet = getSheet("Transactions");
     var monthlySheet = getSheet("Monthly");
 
-    var masterData = masterSheet.getDataRange().getValues().slice(1);
+    var masterData = masterSheet.getDataRange().getValues().slice(1).filter(function(row) { return row[0] && String(row[0]).trim() !== ''; });
     var txData = txSheet.getDataRange().getValues().slice(1);
     var monthlyData = monthlySheet.getDataRange().getValues().slice(1);
 
@@ -43,25 +43,28 @@ function apiGetDailyItems(dateString) {
     var targetMonth = queryDate.getUTCMonth() + 1;
     var targetYear = queryDate.getUTCFullYear();
 
+    var reportsSheet = getSheet("ProductReports", ["CODE", "PO", "TGL_PO", "ORDER_QTY", "PIC", "NO_GR", "KETERANGAN"]);
+    var reportsData = reportsSheet.getDataRange().getValues().slice(1);
+
     var result = masterData.map(function(row) {
       var code = row[0];
       var spec = row[1];
       var unit = row[2];
 
       // Find monthly
-      var mRow = monthlyData.find(function(m) { return m[0] == code && m[1] == targetMonth && m[2] == targetYear; });
-      var saldoAwal = mRow ? mRow[3] : 0;
+      var mRow = monthlyData.find(function(m) { return String(m[0]) === String(code) && m[1] == targetMonth && m[2] == targetYear; });
+      var saldoAwal = mRow ? Number(mRow[3]) || 0 : 0;
       var ket = mRow ? mRow[4] : '';
       var handcarry = mRow ? mRow[5] : '';
 
       // Transactions
-      var txs = txData.filter(function(t) { return t[0] == code; });
+      var txs = txData.filter(function(t) { return String(t[0]) === String(code); });
       var txUntilYesterday = txs.filter(function(t) { 
         var tDate = new Date(t[1]);
         return tDate.getUTCMonth() + 1 == targetMonth && tDate.getUTCFullYear() == targetYear && tDate.getUTCDate() < queryDate.getUTCDate();
       });
-      var masukUntilYesterday = txUntilYesterday.reduce(function(acc, t) { return acc + (t[2] || 0); }, 0);
-      var keluarUntilYesterday = txUntilYesterday.reduce(function(acc, t) { return acc + (t[3] || 0); }, 0);
+      var masukUntilYesterday = txUntilYesterday.reduce(function(acc, t) { return acc + (Number(t[2]) || 0); }, 0);
+      var keluarUntilYesterday = txUntilYesterday.reduce(function(acc, t) { return acc + (Number(t[3]) || 0); }, 0);
       
       var stock = saldoAwal + masukUntilYesterday - keluarUntilYesterday;
 
@@ -69,6 +72,11 @@ function apiGetDailyItems(dateString) {
         var tDate = new Date(t[1]);
         return tDate.getTime() === queryDate.getTime();
       });
+
+      var latestReport = reportsData.filter(function(r) { return String(r[0]) === String(code); })
+                                    .sort(function(a, b) { return new Date(b[2]) - new Date(a[2]); })[0];
+      var po = latestReport ? latestReport[1] : '';
+      var noGr = latestReport ? latestReport[5] : '';
 
       return {
         id: code,
@@ -80,7 +88,9 @@ function apiGetDailyItems(dateString) {
         saldoAwal: saldoAwal,
         stock: stock,
         qtyIn: todayTx ? todayTx[2] : 0,
-        qtyOut: todayTx ? todayTx[3] : 0
+        qtyOut: todayTx ? todayTx[3] : 0,
+        po: po,
+        noGr: noGr
       };
     });
 
@@ -159,7 +169,7 @@ function apiGetDashboard() {
     var txSheet = getSheet("Transactions");
     var monthlySheet = getSheet("Monthly");
 
-    var masterData = masterSheet.getDataRange().getValues().slice(1);
+    var masterData = masterSheet.getDataRange().getValues().slice(1).filter(function(row) { return row[0] && String(row[0]).trim() !== ''; });
     var txData = txSheet.getDataRange().getValues().slice(1);
     var monthlyData = monthlySheet.getDataRange().getValues().slice(1);
 
@@ -179,15 +189,15 @@ function apiGetDashboard() {
       var spec = row[1];
 
       var mRow = monthlyData.find(function(m) { return m[0] == code && m[1] == month && m[2] == year; });
-      var saldo = mRow ? mRow[3] : 0;
+      var saldo = mRow ? Number(mRow[3]) || 0 : 0;
 
       var txs = txData.filter(function(t) { 
         var tDate = new Date(t[1]);
-        return t[0] == code && tDate.getMonth() + 1 == month && tDate.getFullYear() == year;
+        return String(t[0]) === String(code) && tDate.getMonth() + 1 == month && tDate.getFullYear() == year;
       });
 
-      var masuk = txs.reduce(function(acc, t) { return acc + (t[2] || 0); }, 0);
-      var keluar = txs.reduce(function(acc, t) { return acc + (t[3] || 0); }, 0);
+      var masuk = txs.reduce(function(acc, t) { return acc + (Number(t[2]) || 0); }, 0);
+      var keluar = txs.reduce(function(acc, t) { return acc + (Number(t[3]) || 0); }, 0);
       var sisa = saldo + masuk - keluar;
 
       totalSaldoAwal += saldo;
@@ -200,6 +210,8 @@ function apiGetDashboard() {
       }
     });
 
+    lowStockItems.sort(function(a, b) { return a.sisa - b.sisa; });
+
     return {
       success: true,
       data: {
@@ -207,7 +219,7 @@ function apiGetDashboard() {
         totalMasuk: totalMasuk,
         totalKeluar: totalKeluar,
         totalSisa: totalSisa,
-        lowStockItems: lowStockItems.slice(0, 5),
+        lowStockItems: lowStockItems,
         monthName: today.toLocaleString('id-ID', { month: 'long' }),
         year: year
       }
@@ -227,9 +239,12 @@ function apiGetRecap(monthStr, yearStr) {
     var txSheet = getSheet("Transactions");
     var monthlySheet = getSheet("Monthly");
 
-    var masterData = masterSheet.getDataRange().getValues().slice(1);
+    var masterData = masterSheet.getDataRange().getValues().slice(1).filter(function(row) { return row[0] && String(row[0]).trim() !== ''; });
     var txData = txSheet.getDataRange().getValues().slice(1);
     var monthlyData = monthlySheet.getDataRange().getValues().slice(1);
+
+    var reportsSheet = getSheet("ProductReports", ["CODE", "PO", "TGL_PO", "ORDER_QTY", "PIC", "NO_GR", "KETERANGAN"]);
+    var reportsData = reportsSheet.getDataRange().getValues().slice(1);
 
     var result = masterData.map(function(row) {
       var code = row[0];
@@ -237,18 +252,23 @@ function apiGetRecap(monthStr, yearStr) {
       var unit = row[2];
 
       var mRow = monthlyData.find(function(m) { return m[0] == code && m[1] == month && m[2] == year; });
-      var saldoAwal = mRow ? mRow[3] : 0;
+      var saldoAwal = mRow ? Number(mRow[3]) || 0 : 0;
       var ket = mRow ? mRow[4] : '';
       var handcarry = mRow ? mRow[5] : '';
 
       var txs = txData.filter(function(t) { 
         var tDate = new Date(t[1]);
-        return t[0] == code && tDate.getUTCMonth() + 1 == month && tDate.getUTCFullYear() == year;
+        return String(t[0]) === String(code) && tDate.getUTCMonth() + 1 == month && tDate.getUTCFullYear() == year;
       });
 
-      var masuk = txs.reduce(function(acc, t) { return acc + (t[2] || 0); }, 0);
-      var keluar = txs.reduce(function(acc, t) { return acc + (t[3] || 0); }, 0);
+      var masuk = txs.reduce(function(acc, t) { return acc + (Number(t[2]) || 0); }, 0);
+      var keluar = txs.reduce(function(acc, t) { return acc + (Number(t[3]) || 0); }, 0);
       var sisa = saldoAwal + masuk - keluar;
+
+      var latestReport = reportsData.filter(function(r) { return r[0] == code; })
+                                    .sort(function(a, b) { return new Date(b[2]) - new Date(a[2]); })[0];
+      var po = latestReport ? latestReport[1] : '';
+      var noGr = latestReport ? latestReport[5] : '';
 
       return {
         id: code,
@@ -260,7 +280,9 @@ function apiGetRecap(monthStr, yearStr) {
         keluar: keluar,
         sisa: sisa,
         ket: ket,
-        handcarry: handcarry
+        handcarry: handcarry,
+        po: po,
+        noGr: noGr
       };
     });
 
@@ -440,6 +462,36 @@ function apiAddProductReport(payload) {
     };
 
     return { success: true, data: newReport, message: 'Report added successfully' };
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
+}
+
+// 11. API: Update Product Report
+function apiUpdateProductReport(reportId, payload) {
+  try {
+    var reportsSheet = getSheet("ProductReports", ["CODE", "PO", "TGL_PO", "ORDER_QTY", "PIC", "NO_GR", "KETERANGAN"]);
+    var rowIndex = reportId + 1; // since id is pseudo-id (index + 1)
+    
+    if (payload.po !== undefined) reportsSheet.getRange(rowIndex, 2).setValue(payload.po);
+    if (payload.tglPo !== undefined) reportsSheet.getRange(rowIndex, 3).setValue(new Date(payload.tglPo).toISOString());
+    if (payload.orderQty !== undefined) reportsSheet.getRange(rowIndex, 4).setValue(payload.orderQty);
+    if (payload.pic !== undefined) reportsSheet.getRange(rowIndex, 5).setValue(payload.pic);
+    if (payload.noGr !== undefined) reportsSheet.getRange(rowIndex, 6).setValue(payload.noGr);
+    if (payload.keterangan !== undefined) reportsSheet.getRange(rowIndex, 7).setValue(payload.keterangan);
+    
+    return { success: true, message: 'Report updated successfully' };
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
+}
+
+// 12. API: Delete Product Report
+function apiDeleteProductReport(reportId) {
+  try {
+    var reportsSheet = getSheet("ProductReports", ["CODE", "PO", "TGL_PO", "ORDER_QTY", "PIC", "NO_GR", "KETERANGAN"]);
+    reportsSheet.deleteRow(reportId + 1);
+    return { success: true, message: 'Report deleted successfully' };
   } catch(e) {
     return { success: false, error: e.message };
   }

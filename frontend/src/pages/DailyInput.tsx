@@ -239,22 +239,24 @@ export function DailyInput() {
 
       {/* Input Table */}
       <div className="bg-white neo-box overflow-hidden overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[1000px]">
+        <table className="w-full text-left border-collapse min-w-[1700px]">
           <thead>
             <tr className="border-b-[3px] border-[#1a1a1a] bg-[#00cecb]">
-              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] w-64">CODE / SPEC</th>
-              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center w-32">KET</th>
-              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center w-32">HANDCARRY</th>
-              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center">SALDO AWAL</th>
-              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center bg-green-100">MASUK</th>
-              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center bg-red-100">KELUAR</th>
-              <th className="p-4 font-black text-center">SISA BARANG</th>
+              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] w-[180px]">NO PO</th>
+              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] w-[180px]">NO GR</th>
+              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] min-w-[300px]">CODE / SPEC</th>
+              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center w-[250px]">KET</th>
+              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center w-[250px]">HANDCARRY</th>
+              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center w-[120px]">SALDO AWAL</th>
+              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center bg-green-100 w-[120px]">MASUK</th>
+              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center bg-red-100 w-[120px]">KELUAR</th>
+              <th className="p-4 font-black text-center w-[150px]">SISA BARANG</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-gray-500 font-bold">
+                <td colSpan={9} className="p-8 text-center text-gray-500 font-bold">
                   <div className="flex flex-col items-center justify-center">
                     <Loader2 className="animate-spin mb-4" size={48} />
                     Memuat data...
@@ -263,7 +265,7 @@ export function DailyInput() {
               </tr>
             ) : filteredItems.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-gray-500 font-bold">
+                <td colSpan={9} className="p-8 text-center text-gray-500 font-bold">
                   <div className="flex flex-col items-center justify-center">
                     <AlertCircle size={48} className="mb-4 opacity-20" />
                     Barang tidak ditemukan.
@@ -273,6 +275,12 @@ export function DailyInput() {
             ) : (
               paginatedItems.map((item) => (
                 <tr key={item.id} className="border-b-[3px] border-[#1a1a1a] hover:bg-gray-50 last:border-0 group transition-colors">
+                  <td className="p-3 border-r-[3px] border-[#1a1a1a] font-bold text-gray-700 break-words whitespace-normal">
+                    {item.po || '-'}
+                  </td>
+                  <td className="p-3 border-r-[3px] border-[#1a1a1a] font-bold text-gray-700 break-words whitespace-normal">
+                    {item.noGr || '-'}
+                  </td>
                   <td className="p-3 border-r-[3px] border-[#1a1a1a]">
                     <div className="font-black font-mono">{item.code}</div>
                     <div className="text-sm font-bold text-gray-600">{item.spec}</div>

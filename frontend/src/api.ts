@@ -127,6 +127,40 @@ export const api = {
       });
       return res.json();
     }
+  },
+
+  async updateProductReport(reportId: string | number, payload: any) {
+    if (this.isGAS()) {
+      return new Promise((resolve) => {
+        window.google.script.run
+          .withSuccessHandler((res: any) => resolve(res))
+          .withFailureHandler((err: any) => resolve({ success: false, error: err.message || err }))
+          .apiUpdateProductReport(reportId, payload);
+      });
+    } else {
+      const res = await fetch(`http://localhost:3000/api/reports/${reportId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return res.json();
+    }
+  },
+
+  async deleteProductReport(reportId: string | number) {
+    if (this.isGAS()) {
+      return new Promise((resolve) => {
+        window.google.script.run
+          .withSuccessHandler((res: any) => resolve(res))
+          .withFailureHandler((err: any) => resolve({ success: false, error: err.message || err }))
+          .apiDeleteProductReport(reportId);
+      });
+    } else {
+      const res = await fetch(`http://localhost:3000/api/reports/${reportId}`, {
+        method: 'DELETE'
+      });
+      return res.json();
+    }
   }
 };
 

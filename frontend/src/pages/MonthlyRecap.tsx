@@ -43,6 +43,8 @@ export function MonthlyRecap() {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [showLowStock, setShowLowStock] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   useEffect(() => {
     setLoading(true);
@@ -57,16 +59,33 @@ export function MonthlyRecap() {
       .catch(() => setLoading(false));
   }, [month, year]);
 
-  const totalPages = Math.ceil(data.length / itemsPerPage);
-  const paginatedData = data.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const filteredData = (() => {
+    // Always filter out invalid/empty items
+    let result = data.filter((item: any) => item && item.code && String(item.code).trim() !== '');
+    if (showLowStock) {
+      result = result.filter((item: any) => {
+        const sisa = Number(item.sisa);
+        return !isNaN(sisa) && sisa <= 10;
+      });
+      result = [...result].sort((a: any, b: any) => {
+        const aSisa = Number(a.sisa) || 0;
+        const bSisa = Number(b.sisa) || 0;
+        return sortOrder === 'desc' ? bSisa - aSisa : aSisa - bSisa;
+      });
+    }
+    return result;
+  })();
+
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleExport = () => {
-    if (data.length === 0) {
+    if (filteredData.length === 0) {
       alert("Tidak ada data untuk diexport");
       return;
     }
 
-    const exportData = data.map((item, index) => ({
+    const exportData = filteredData.map((item, index) => ({
       'NO': index + 1,
       'CODE': item.code,
       'SPEC': item.spec,
@@ -97,6 +116,19 @@ export function MonthlyRecap() {
         </div>
         
         <div className="flex gap-4">
+          <label className="flex items-center gap-2 cursor-pointer bg-white neo-box p-2 px-3 font-bold select-none">
+            <input 
+              type="checkbox" 
+              className="w-5 h-5 cursor-pointer accent-black" 
+              checked={showLowStock}
+              onChange={(e) => {
+                setShowLowStock(e.target.checked);
+                setCurrentPage(1);
+              }}
+            />
+            Stock ≤ 10
+          </label>
+
           <div className="neo-box bg-white p-2 flex items-center gap-2">
             <Filter size={20} className="ml-2 mr-2" />
             <CustomSelect 
@@ -110,6 +142,17 @@ export function MonthlyRecap() {
               onChange={setYear} 
             />
           </div>
+
+          {showLowStock && (
+            <CustomSelect 
+              options={[
+                { value: 'desc', label: 'Sisa: Besar ke Kecil' },
+                { value: 'asc', label: 'Sisa: Kecil ke Besar' }
+              ]}
+              value={sortOrder}
+              onChange={(val) => setSortOrder(val as 'desc' | 'asc')}
+            />
+          )}
           
           <Button variant="accent" className="flex items-center gap-2" onClick={handleExport}>
             <Download size={20} /> Export Excel
@@ -118,34 +161,36 @@ export function MonthlyRecap() {
       </header>
 
       <div className="neo-box bg-white overflow-hidden overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[1000px] table-fixed">
+        <table className="w-full text-left border-collapse min-w-[1700px] table-fixed">
           <thead>
             <tr className="bg-[#ffed66] border-b-[3px] border-[#1a1a1a]">
-              <th className="p-3 font-black border-r-[3px] border-[#1a1a1a] w-[25%]">CODE / SPEC</th>
-              <th className="p-3 font-black border-r-[3px] border-[#1a1a1a] text-center w-[15%]">KET</th>
-              <th className="p-3 font-black border-r-[3px] border-[#1a1a1a] text-center w-[15%]">HANDCARRY</th>
-              <th className="p-3 font-black border-r-[3px] border-[#1a1a1a] text-center w-[10%]">SALDO AWAL</th>
-              <th className="p-3 font-black border-r-[3px] border-[#1a1a1a] text-center w-[10%]">MASUK</th>
-              <th className="p-3 font-black border-r-[3px] border-[#1a1a1a] text-center w-[10%]">KELUAR</th>
-              <th className="p-3 font-black text-center w-[15%]">SISA BARANG</th>
+              <th className="p-3 font-black border-r-[3px] border-[#1a1a1a] w-[180px]">NO PO</th>
+              <th className="p-3 font-black border-r-[3px] border-[#1a1a1a] w-[180px]">NO GR</th>
+              <th className="p-3 font-black border-r-[3px] border-[#1a1a1a] min-w-[300px]">CODE / SPEC</th>
+              <th className="p-3 font-black border-r-[3px] border-[#1a1a1a] text-center w-[250px]">KET</th>
+              <th className="p-3 font-black border-r-[3px] border-[#1a1a1a] text-center w-[250px]">HANDCARRY</th>
+              <th className="p-3 font-black border-r-[3px] border-[#1a1a1a] text-center w-[120px]">SALDO AWAL</th>
+              <th className="p-3 font-black border-r-[3px] border-[#1a1a1a] text-center w-[120px]">MASUK</th>
+              <th className="p-3 font-black border-r-[3px] border-[#1a1a1a] text-center w-[120px]">KELUAR</th>
+              <th className="p-3 font-black text-center w-[150px]">SISA BARANG</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="p-12 text-center text-gray-500 font-bold">
+                <td colSpan={9} className="p-12 text-center text-gray-500 font-bold">
                   <div className="flex flex-col items-center justify-center">
                     <Loader2 className="animate-spin mb-4" size={48} />
                     Memuat data...
                   </div>
                 </td>
               </tr>
-            ) : data.length === 0 ? (
+            ) : filteredData.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-12 text-center text-gray-500 font-bold">
+                <td colSpan={9} className="p-12 text-center text-gray-500 font-bold">
                   <div className="flex flex-col items-center justify-center">
                     <FileSpreadsheet size={48} className="mb-4 opacity-20" />
-                    Belum ada data di bulan ini.
+                    Belum ada data di bulan ini atau tidak ada item dengan stock ≤ 10.
                   </div>
                 </td>
               </tr>
@@ -156,14 +201,20 @@ export function MonthlyRecap() {
                   onClick={() => navigate(`/report/${item.id}`)}
                   className="border-b-[3px] border-[#1a1a1a] hover:bg-yellow-100 last:border-0 transition-colors cursor-pointer group"
                 >
+                  <td className="p-3 border-r-[3px] border-[#1a1a1a] font-bold text-gray-700 break-words whitespace-normal">
+                    {item.po || '-'}
+                  </td>
+                  <td className="p-3 border-r-[3px] border-[#1a1a1a] font-bold text-gray-700 break-words whitespace-normal">
+                    {item.noGr || '-'}
+                  </td>
                   <td className="p-3 border-r-[3px] border-[#1a1a1a] break-words">
                     <div className="font-black font-mono whitespace-normal break-words group-hover:text-blue-600 transition-colors">{item.code}</div>
                     <div className="text-sm font-bold text-gray-600 whitespace-normal break-words">{item.spec}</div>
                   </td>
-                  <td className="p-3 border-r-[3px] border-[#1a1a1a] text-center text-sm font-bold whitespace-normal break-words max-w-[150px]">
+                  <td className="p-3 border-r-[3px] border-[#1a1a1a] text-center text-sm font-bold whitespace-normal break-words max-w-[250px]">
                     {item.ket || '-'}
                   </td>
-                  <td className="p-3 border-r-[3px] border-[#1a1a1a] text-center text-sm font-bold whitespace-normal break-words max-w-[150px]">
+                  <td className="p-3 border-r-[3px] border-[#1a1a1a] text-center text-sm font-bold whitespace-normal break-words max-w-[250px]">
                     {item.handcarry || '-'}
                   </td>
                   <td className="p-3 border-r-[3px] border-[#1a1a1a] text-center font-black text-xl text-gray-500">
@@ -186,27 +237,27 @@ export function MonthlyRecap() {
         </table>
       </div>
 
-      {data.length > 0 && (
-        <div className="neo-box bg-white p-4 flex items-center justify-between">
+      {filteredData.length > 0 && (
+        <div className="neo-box bg-white p-4 flex items-center justify-between mt-4">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2 font-bold">
               Tampilkan:
-              <select 
-                className="neo-input py-1 px-2 cursor-pointer"
-                value={itemsPerPage}
-                onChange={e => {
-                  setItemsPerPage(Number(e.target.value));
+              <CustomSelect 
+                options={[
+                  { value: '10', label: '10' },
+                  { value: '25', label: '25' },
+                  { value: '50', label: '50' },
+                  { value: '100', label: '100' }
+                ]}
+                value={String(itemsPerPage)}
+                onChange={(val) => {
+                  setItemsPerPage(Number(val));
                   setCurrentPage(1);
                 }}
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
+              />
             </div>
             <div className="text-gray-600 font-bold">
-              Total {data.length} barang
+              Total {filteredData.length} barang
             </div>
           </div>
           

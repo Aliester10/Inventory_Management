@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Loader2, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Loader2, AlertCircle, Pencil, Trash2, X } from 'lucide-react';
 import { api } from '../api';
 import { Button } from '../components/Button';
 
@@ -12,7 +12,9 @@ export function ProductReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Removed modal state since it moved to DailyInput
+  const [editReport, setEditReport] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchItemData = async () => {
     if (!itemId) return;
@@ -35,7 +37,38 @@ export function ProductReport() {
     fetchItemData();
   }, [itemId]);
 
-  // handleAddSubmit was moved to DailyInput
+  const handleEdit = (report: any) => {
+    setEditReport({
+      ...report,
+      tglPo: new Date(report.tglPo).toISOString().split('T')[0]
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (confirm('Yakin ingin menghapus report ini?')) {
+      try {
+        await api.deleteProductReport(id);
+        fetchItemData();
+      } catch (err) {
+        alert('Gagal menghapus report');
+      }
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await api.updateProductReport(editReport.id, editReport);
+      setIsEditModalOpen(false);
+      fetchItemData();
+    } catch (err) {
+      alert('Gagal menyimpan perubahan');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -83,11 +116,12 @@ export function ProductReport() {
           <thead>
             <tr className="bg-[#00cecb] border-b-[3px] border-[#1a1a1a]">
               <th className="p-4 font-black border-r-[3px] border-[#1a1a1a]">PO</th>
+              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center w-40">NO GR</th>
               <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center w-40">TGL PO</th>
               <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center w-32">ORDER QTY</th>
-              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center w-40">NO GR</th>
               <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center w-48">PIC</th>
-              <th className="p-4 font-black">KETERANGAN</th>
+              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a]">KETERANGAN</th>
+              <th className="p-4 font-black text-center w-32">AKSI</th>
             </tr>
           </thead>
           <tbody>
@@ -104,19 +138,29 @@ export function ProductReport() {
                     {report.po}
                   </td>
                   <td className="p-4 border-r-[3px] border-[#1a1a1a] text-center font-bold">
+                    {report.noGr || '-'}
+                  </td>
+                  <td className="p-4 border-r-[3px] border-[#1a1a1a] text-center font-bold">
                     {new Date(report.tglPo).toLocaleDateString('id-ID')}
                   </td>
                   <td className="p-4 border-r-[3px] border-[#1a1a1a] text-center font-black text-xl text-blue-600">
                     {report.orderQty}
                   </td>
                   <td className="p-4 border-r-[3px] border-[#1a1a1a] text-center font-bold">
-                    {report.noGr || '-'}
-                  </td>
-                  <td className="p-4 border-r-[3px] border-[#1a1a1a] text-center font-bold">
                     {report.pic || '-'}
                   </td>
-                  <td className="p-4 font-medium break-words">
+                  <td className="p-4 border-r-[3px] border-[#1a1a1a] font-medium break-words">
                     {report.keterangan || '-'}
+                  </td>
+                  <td className="p-4 text-center font-bold">
+                    <div className="flex items-center justify-center gap-2">
+                      <Button onClick={() => handleEdit(report)} variant="secondary" className="!p-2 bg-blue-100 hover:bg-blue-200 text-blue-700" title="Edit">
+                        <Pencil size={18} />
+                      </Button>
+                      <Button onClick={() => handleDelete(report.id)} variant="secondary" className="!p-2 bg-red-100 hover:bg-red-200 text-red-700" title="Hapus">
+                        <Trash2 size={18} />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -125,7 +169,94 @@ export function ProductReport() {
         </table>
       </div>
 
-      {/* Modal moved to DailyInput */}
+      {/* Edit Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white neo-box w-full max-w-2xl my-8">
+            <div className="flex justify-between items-center p-6 border-b-[3px] border-[#1a1a1a] bg-[#ffed66] sticky top-0 z-10">
+              <h2 className="text-2xl font-black uppercase flex items-center gap-2">
+                <Pencil size={28} /> Edit Report PO
+              </h2>
+              <button 
+                onClick={() => setIsEditModalOpen(false)}
+                className="p-2 hover:bg-black/5 rounded-full transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold mb-1">No PO</label>
+                  <input
+                    type="text"
+                    required
+                    className="neo-input w-full"
+                    value={editReport?.po || ''}
+                    onChange={e => setEditReport({...editReport, po: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold mb-1">Tanggal PO</label>
+                  <input
+                    type="date"
+                    required
+                    className="neo-input w-full"
+                    value={editReport?.tglPo || ''}
+                    onChange={e => setEditReport({...editReport, tglPo: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold mb-1">No GR (Opsional)</label>
+                  <input
+                    type="text"
+                    className="neo-input w-full"
+                    value={editReport?.noGr || ''}
+                    onChange={e => setEditReport({...editReport, noGr: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold mb-1">Order Qty</label>
+                  <input
+                    type="number"
+                    required
+                    className="neo-input w-full"
+                    value={editReport?.orderQty || ''}
+                    onChange={e => setEditReport({...editReport, orderQty: parseInt(e.target.value)})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold mb-1">PIC (Opsional)</label>
+                  <input
+                    type="text"
+                    className="neo-input w-full"
+                    value={editReport?.pic || ''}
+                    onChange={e => setEditReport({...editReport, pic: e.target.value})}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-bold mb-1">Keterangan (Opsional)</label>
+                  <textarea
+                    className="neo-input w-full h-24 resize-none"
+                    value={editReport?.keterangan || ''}
+                    onChange={e => setEditReport({...editReport, keterangan: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-4 pt-6 border-t-[3px] border-[#1a1a1a] mt-6">
+                <Button type="button" variant="secondary" onClick={() => setIsEditModalOpen(false)}>
+                  Batal
+                </Button>
+                <Button type="submit" variant="primary" disabled={submitting}>
+                  {submitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
