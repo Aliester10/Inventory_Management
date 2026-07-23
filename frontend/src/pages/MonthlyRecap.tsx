@@ -6,6 +6,11 @@ import { Button } from '../components/Button';
 import { CustomSelect } from '../components/CustomSelect';
 import { api } from '../api';
 
+const formatNumber = (num: any) => {
+  if (num === null || num === undefined || isNaN(Number(num))) return '0';
+  return Number(num).toLocaleString('id-ID');
+};
+
 const MONTHS = [
   { value: '01', label: 'Januari' },
   { value: '02', label: 'Februari' },
@@ -162,16 +167,16 @@ export function MonthlyRecap() {
                     {item.handcarry || '-'}
                   </td>
                   <td className="p-3 border-r-[3px] border-[#1a1a1a] text-center font-black text-xl text-gray-500">
-                    {item.saldoAwal}
+                    {formatNumber(item.saldoAwal)}
                   </td>
                   <td className="p-3 border-r-[3px] border-[#1a1a1a] text-center font-black text-xl text-green-600">
-                    +{item.masuk}
+                    +{formatNumber(item.masuk)}
                   </td>
                   <td className="p-3 border-r-[3px] border-[#1a1a1a] text-center font-black text-xl text-red-600">
-                    -{item.keluar}
+                    -{formatNumber(item.keluar)}
                   </td>
                   <td className="p-3 text-center font-black text-xl">
-                    {item.sisa}
+                    {formatNumber(item.sisa)}
                     <span className="text-xs font-bold text-gray-500 block">{item.unit}</span>
                   </td>
                 </tr>

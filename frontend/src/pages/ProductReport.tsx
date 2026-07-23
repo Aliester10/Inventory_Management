@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, Loader2, X, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Loader2, AlertCircle } from 'lucide-react';
 import { api } from '../api';
 import { Button } from '../components/Button';
 
@@ -12,17 +12,7 @@ export function ProductReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Add Modal State
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newReport, setNewReport] = useState({
-    po: '',
-    tglPo: new Date().toISOString().split('T')[0],
-    orderQty: 0,
-    pic: '',
-    keterangan: ''
-  });
-  const [addError, setAddError] = useState('');
+  // Removed modal state since it moved to DailyInput
 
   const fetchItemData = async () => {
     if (!itemId) return;
@@ -45,40 +35,7 @@ export function ProductReport() {
     fetchItemData();
   }, [itemId]);
 
-  const handleAddSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newReport.po || !newReport.tglPo) {
-      setAddError('Nomor PO dan Tanggal PO wajib diisi!');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setAddError('');
-    try {
-      const res: any = await api.addProductReport({
-        itemId: itemId as string | number,
-        ...newReport
-      });
-
-      if (res.success) {
-        setShowAddModal(false);
-        setNewReport({
-          po: '',
-          tglPo: new Date().toISOString().split('T')[0],
-          orderQty: 0,
-          pic: '',
-          keterangan: ''
-        });
-        fetchItemData(); // refresh data
-      } else {
-        setAddError(res.error || 'Gagal menyimpan report PO');
-      }
-    } catch (err: any) {
-      setAddError('Terjadi kesalahan saat menyimpan data');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  // handleAddSubmit was moved to DailyInput
 
   if (loading) {
     return (
@@ -118,11 +75,7 @@ export function ProductReport() {
             <span className="font-mono text-blue-600">{item.code}</span> - {item.spec}
           </p>
         </div>
-        
-        <Button variant="accent" className="flex items-center gap-2" onClick={() => setShowAddModal(true)}>
-          <Plus size={20} />
-          Tambah Report PO
-        </Button>
+        {/* Action button moved to DailyInput */}
       </header>
 
       <div className="bg-white neo-box overflow-hidden overflow-x-auto">
@@ -132,6 +85,7 @@ export function ProductReport() {
               <th className="p-4 font-black border-r-[3px] border-[#1a1a1a]">PO</th>
               <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center w-40">TGL PO</th>
               <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center w-32">ORDER QTY</th>
+              <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center w-40">NO GR</th>
               <th className="p-4 font-black border-r-[3px] border-[#1a1a1a] text-center w-48">PIC</th>
               <th className="p-4 font-black">KETERANGAN</th>
             </tr>
@@ -139,7 +93,7 @@ export function ProductReport() {
           <tbody>
             {!item.productReports || item.productReports.length === 0 ? (
               <tr>
-                <td colSpan={5} className="p-12 text-center text-gray-500 font-bold">
+                <td colSpan={6} className="p-12 text-center text-gray-500 font-bold">
                   Belum ada data PO untuk produk ini.
                 </td>
               </tr>
@@ -156,6 +110,9 @@ export function ProductReport() {
                     {report.orderQty}
                   </td>
                   <td className="p-4 border-r-[3px] border-[#1a1a1a] text-center font-bold">
+                    {report.noGr || '-'}
+                  </td>
+                  <td className="p-4 border-r-[3px] border-[#1a1a1a] text-center font-bold">
                     {report.pic || '-'}
                   </td>
                   <td className="p-4 font-medium break-words">
@@ -168,107 +125,7 @@ export function ProductReport() {
         </table>
       </div>
 
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white neo-box max-w-lg w-full animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center p-4 border-b-[3px] border-[#1a1a1a] bg-[#ffed66]">
-              <h2 className="text-2xl font-black">TAMBAH REPORT PO</h2>
-              <button 
-                onClick={() => setShowAddModal(false)}
-                className="p-1 hover:bg-black hover:text-white transition-colors rounded-sm"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleAddSubmit} className="p-6 space-y-4">
-              {addError && (
-                <div className="bg-red-100 border-[3px] border-red-500 p-3 font-bold text-red-700">
-                  {addError}
-                </div>
-              )}
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-bold mb-1">Nomor PO *</label>
-                  <input 
-                    type="text" 
-                    required
-                    className="neo-input w-full" 
-                    value={newReport.po}
-                    onChange={e => setNewReport({...newReport, po: e.target.value})}
-                    placeholder="PO-XXXX..."
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold mb-1">Tanggal PO *</label>
-                  <input 
-                    type="date" 
-                    required
-                    className="neo-input w-full" 
-                    value={newReport.tglPo}
-                    onChange={e => setNewReport({...newReport, tglPo: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-bold mb-1">Order Qty</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    className="neo-input w-full" 
-                    value={newReport.orderQty}
-                    onChange={e => setNewReport({...newReport, orderQty: parseInt(e.target.value) || 0})}
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold mb-1">PIC</label>
-                  <input 
-                    type="text" 
-                    className="neo-input w-full" 
-                    value={newReport.pic}
-                    onChange={e => setNewReport({...newReport, pic: e.target.value})}
-                    placeholder="Nama Penanggung Jawab"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold mb-1">Keterangan</label>
-                <textarea 
-                  className="neo-input w-full" 
-                  rows={3}
-                  value={newReport.keterangan}
-                  onChange={e => setNewReport({...newReport, keterangan: e.target.value})}
-                  placeholder="Catatan tambahan..."
-                />
-              </div>
-
-              <div className="pt-4 flex gap-4">
-                <Button 
-                  type="button" 
-                  variant="default" 
-                  className="flex-1"
-                  onClick={() => setShowAddModal(false)}
-                >
-                  Batal
-                </Button>
-                <Button 
-                  type="submit" 
-                  variant="primary" 
-                  className="flex-1 flex justify-center items-center gap-2"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting && <Loader2 className="animate-spin" size={20} />}
-                  Simpan Data
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Modal moved to DailyInput */}
     </div>
   );
 }

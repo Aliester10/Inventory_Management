@@ -111,7 +111,7 @@ export const api = {
     }
   },
 
-  async addProductReport(payload: { itemId: string | number; po: string; tglPo: string; orderQty: number; pic: string; keterangan: string }) {
+  async addProductReport(payload: { itemId: string | number; po: string; tglPo: string; orderQty: number; pic: string; noGr?: string; keterangan: string }) {
     if (this.isGAS()) {
       return new Promise((resolve) => {
         window.google.script.run

@@ -687,24 +687,25 @@ app.get('/api/reports/:itemId', async (req, res) => {
   }
 });
 
-app.post('/api/reports', async (req, res) => {
-  try {
-    const { itemId, po, tglPo, orderQty, pic, keterangan } = req.body;
-    
-    if (!itemId || !po || !tglPo) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    const newReport = await prisma.productReport.create({
-      data: {
-        itemId: parseInt(itemId),
-        po,
-        tglPo: new Date(tglPo),
-        orderQty: parseInt(orderQty) || 0,
-        pic: pic || '',
-        keterangan: keterangan || ''
+  app.post('/api/reports', async (req, res) => {
+    try {
+      const { itemId, po, tglPo, orderQty, pic, noGr, keterangan } = req.body;
+      
+      if (!itemId || !po || !tglPo) {
+        return res.status(400).json({ error: 'Missing required fields' });
       }
-    });
+  
+      const newReport = await prisma.productReport.create({
+        data: {
+          itemId: parseInt(itemId),
+          po,
+          tglPo: new Date(tglPo),
+          orderQty: parseInt(orderQty) || 0,
+          pic: pic || '',
+          noGr: noGr || null,
+          keterangan: keterangan || ''
+        }
+      });
 
     res.json({ success: true, data: newReport, message: 'Report added successfully' });
   } catch (error) {

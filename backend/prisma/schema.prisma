@@ -77,6 +77,7 @@ model ProductReport {
   tglPo        DateTime
   orderQty     Int
   pic          String
+  noGr         String?
   keterangan   String?
   
   createdAt    DateTime @default(now())

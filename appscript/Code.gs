@@ -25,7 +25,7 @@ function initializeSetup() {
   getSheet("Master", ["CODE", "SPEC", "UNIT"]);
   getSheet("Transactions", ["CODE", "DATE", "MASUK", "KELUAR"]);
   getSheet("Monthly", ["CODE", "MONTH", "YEAR", "SALDO_AWAL", "KET", "HANDCARRY"]);
-  getSheet("ProductReports", ["CODE", "PO", "TGL_PO", "ORDER_QTY", "PIC", "KETERANGAN"]);
+  getSheet("ProductReports", ["CODE", "PO", "TGL_PO", "ORDER_QTY", "PIC", "NO_GR", "KETERANGAN"]);
 }
 
 // 3. API: Get Items (for Daily Input)
@@ -71,6 +71,7 @@ function apiGetDailyItems(dateString) {
       });
 
       return {
+        id: code,
         code: code,
         spec: spec,
         unit: unit,
@@ -379,7 +380,7 @@ function apiGetProductReports(itemId) {
       productReports: []
     };
 
-    var reportsSheet = getSheet("ProductReports", ["CODE", "PO", "TGL_PO", "ORDER_QTY", "PIC", "KETERANGAN"]);
+    var reportsSheet = getSheet("ProductReports", ["CODE", "PO", "TGL_PO", "ORDER_QTY", "PIC", "NO_GR", "KETERANGAN"]);
     var reportsData = reportsSheet.getDataRange().getValues().slice(1);
     
     var productReports = [];
@@ -391,7 +392,8 @@ function apiGetProductReports(itemId) {
           tglPo: row[2],
           orderQty: row[3],
           pic: row[4],
-          keterangan: row[5]
+          noGr: row[5],
+          keterangan: row[6]
         });
       }
     });
@@ -417,14 +419,15 @@ function apiAddProductReport(payload) {
     var tglPo = payload.tglPo;
     var orderQty = payload.orderQty || 0;
     var pic = payload.pic || '';
+    var noGr = payload.noGr || '';
     var keterangan = payload.keterangan || '';
 
     if (!code || !po || !tglPo) {
       return { success: false, error: 'Missing required fields' };
     }
 
-    var reportsSheet = getSheet("ProductReports", ["CODE", "PO", "TGL_PO", "ORDER_QTY", "PIC", "KETERANGAN"]);
-    reportsSheet.appendRow([code, po, new Date(tglPo).toISOString(), orderQty, pic, keterangan]);
+    var reportsSheet = getSheet("ProductReports", ["CODE", "PO", "TGL_PO", "ORDER_QTY", "PIC", "NO_GR", "KETERANGAN"]);
+    reportsSheet.appendRow([code, po, new Date(tglPo).toISOString(), orderQty, pic, noGr, keterangan]);
 
     var newReport = {
       id: reportsSheet.getLastRow() - 1,
@@ -432,6 +435,7 @@ function apiAddProductReport(payload) {
       tglPo: new Date(tglPo).toISOString(),
       orderQty: orderQty,
       pic: pic,
+      noGr: noGr,
       keterangan: keterangan
     };
 

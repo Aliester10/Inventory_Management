@@ -3,6 +3,11 @@ import { Search, AlertCircle, Loader2, ChevronLeft, ChevronRight, Plus, X } from
 import { api } from '../api';
 import { Button } from '../components/Button';
 
+const formatNumber = (num: any) => {
+  if (num === null || num === undefined || isNaN(Number(num))) return '0';
+  return Number(num).toLocaleString('id-ID');
+};
+
 export function DailyInput() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -18,6 +23,22 @@ export function DailyInput() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [addError, setAddError] = useState('');
   const [newProduct, setNewProduct] = useState({ code: '', spec: '', unit: '', saldoAwal: 0 });
+
+  // Add Report PO State
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [reportError, setReportError] = useState('');
+  const [newReport, setNewReport] = useState({
+    itemId: '',
+    po: '',
+    tglPo: new Date().toISOString().split('T')[0],
+    orderQty: 0,
+    pic: '',
+    noGr: '',
+    keterangan: ''
+  });
+  const [productSearch, setProductSearch] = useState('');
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
 
   const fetchItems = () => {
     setLoading(true);
@@ -55,6 +76,40 @@ export function DailyInput() {
       setAddError('Terjadi kesalahan saat menambahkan produk');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleAddReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newReport.itemId || !newReport.po || !newReport.tglPo) {
+      setReportError('Produk, Nomor PO, dan Tanggal PO wajib diisi!');
+      return;
+    }
+
+    setIsSubmittingReport(true);
+    setReportError('');
+    try {
+      const res: any = await api.addProductReport(newReport);
+
+      if (res.success) {
+        setShowReportModal(false);
+        setNewReport({
+          itemId: '',
+          po: '',
+          tglPo: new Date().toISOString().split('T')[0],
+          orderQty: 0,
+          pic: '',
+          noGr: '',
+          keterangan: ''
+        });
+        setProductSearch('');
+      } else {
+        setReportError(res.error || 'Gagal menyimpan report PO');
+      }
+    } catch (err: any) {
+      setReportError('Terjadi kesalahan saat menyimpan data');
+    } finally {
+      setIsSubmittingReport(false);
     }
   };
 
@@ -162,14 +217,24 @@ export function DailyInput() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button 
-          variant="primary" 
-          className="flex items-center gap-2"
-          onClick={() => setShowAddModal(true)}
-        >
-          <Plus size={20} />
-          Tambah Produk
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="accent" 
+            className="flex items-center gap-2"
+            onClick={() => setShowReportModal(true)}
+          >
+            <Plus size={20} />
+            Tambah Report PO
+          </Button>
+          <Button 
+            variant="primary" 
+            className="flex items-center gap-2"
+            onClick={() => setShowAddModal(true)}
+          >
+            <Plus size={20} />
+            Tambah Produk
+          </Button>
+        </div>
       </div>
 
       {/* Input Table */}
@@ -233,7 +298,7 @@ export function DailyInput() {
                     />
                   </td>
                   <td className="p-3 border-r-[3px] border-[#1a1a1a] text-center font-black text-xl text-gray-600">
-                    {item.saldoAwal}
+                    {formatNumber(item.saldoAwal)}
                   </td>
                   <td className="p-3 border-r-[3px] border-[#1a1a1a] bg-green-50">
                     <input 
@@ -264,7 +329,7 @@ export function DailyInput() {
                     />
                   </td>
                   <td className="p-3 text-center font-black text-xl">
-                    {item.stock + (item.qtyIn || 0) - (item.qtyOut || 0)}
+                    {formatNumber(item.stock + (item.qtyIn || 0) - (item.qtyOut || 0))}
                     <span className="text-xs font-bold text-gray-500 block">{item.unit}</span>
                   </td>
                 </tr>
@@ -409,6 +474,166 @@ export function DailyInput() {
                 >
                   {isSubmitting && <Loader2 className="animate-spin" size={20} />}
                   Simpan Produk
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Report PO Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white neo-box max-w-lg w-full animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-4 border-b-[3px] border-[#1a1a1a] bg-[#00cecb]">
+              <h2 className="text-2xl font-black">TAMBAH REPORT PO</h2>
+              <button 
+                onClick={() => setShowReportModal(false)}
+                className="p-1 hover:bg-black hover:text-white transition-colors rounded-sm"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleAddReport} className="p-6 space-y-4">
+              {reportError && (
+                <div className="bg-red-100 border-[3px] border-red-500 p-3 font-bold text-red-700">
+                  {reportError}
+                </div>
+              )}
+              
+              <div className="relative">
+                <label className="block font-bold mb-1">Pilih Produk *</label>
+                <input 
+                  type="text" 
+                  className="neo-input w-full" 
+                  placeholder="Ketik untuk mencari produk (Code / Spec)..."
+                  value={productSearch}
+                  onChange={(e) => {
+                    setProductSearch(e.target.value);
+                    setShowProductDropdown(true);
+                    setNewReport(prev => ({...prev, itemId: ''}));
+                  }}
+                  onFocus={() => setShowProductDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowProductDropdown(false), 200)}
+                />
+                {showProductDropdown && (
+                  <div className="absolute z-10 w-full mt-1 max-h-60 overflow-y-auto bg-white border-[3px] border-[#1a1a1a] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
+                    {items.filter(item => 
+                      item.code.toLowerCase().includes(productSearch.toLowerCase()) || 
+                      (item.spec && item.spec.toLowerCase().includes(productSearch.toLowerCase()))
+                    ).map(item => (
+                      <div 
+                        key={item.id || item.code} 
+                        className="p-2 border-b-[2px] border-[#1a1a1a] last:border-0 hover:bg-[#ffed66] cursor-pointer"
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // Prevent input from losing focus immediately
+                          setNewReport(prev => ({...prev, itemId: item.id || item.code}));
+                          setProductSearch(`${item.code} - ${item.spec}`);
+                          setShowProductDropdown(false);
+                        }}
+                      >
+                        <div className="font-bold">{item.code}</div>
+                        <div className="text-sm text-gray-600">{item.spec}</div>
+                      </div>
+                    ))}
+                    {items.filter(item => 
+                      item.code.toLowerCase().includes(productSearch.toLowerCase()) || 
+                      (item.spec && item.spec.toLowerCase().includes(productSearch.toLowerCase()))
+                    ).length === 0 && (
+                      <div className="p-2 text-gray-500 font-bold text-center">Tidak ada produk ditemukan</div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold mb-1">Nomor PO *</label>
+                  <input 
+                    type="text" 
+                    required
+                    className="neo-input w-full" 
+                    value={newReport.po}
+                    onChange={e => setNewReport({...newReport, po: e.target.value})}
+                    placeholder="PO-XXXX..."
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">Tanggal PO *</label>
+                  <input 
+                    type="date" 
+                    required
+                    className="neo-input w-full" 
+                    value={newReport.tglPo}
+                    onChange={e => setNewReport({...newReport, tglPo: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold mb-1">Order Qty</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    className="neo-input w-full" 
+                    value={newReport.orderQty}
+                    onChange={e => setNewReport({...newReport, orderQty: parseInt(e.target.value) || 0})}
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">PIC</label>
+                  <input 
+                    type="text" 
+                    className="neo-input w-full" 
+                    value={newReport.pic}
+                    onChange={e => setNewReport({...newReport, pic: e.target.value})}
+                    placeholder="Nama Penanggung Jawab"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold mb-1">No GR</label>
+                  <input 
+                    type="text" 
+                    className="neo-input w-full" 
+                    value={newReport.noGr}
+                    onChange={e => setNewReport({...newReport, noGr: e.target.value})}
+                    placeholder="Nomor GR..."
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">Keterangan</label>
+                  <input 
+                    type="text" 
+                    className="neo-input w-full" 
+                    value={newReport.keterangan}
+                    onChange={e => setNewReport({...newReport, keterangan: e.target.value})}
+                    placeholder="Catatan tambahan..."
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-4">
+                <Button 
+                  type="button" 
+                  variant="secondary" 
+                  className="flex-1"
+                  onClick={() => setShowReportModal(false)}
+                >
+                  Batal
+                </Button>
+                <Button 
+                  type="submit" 
+                  variant="primary" 
+                  className="flex-1 flex justify-center items-center gap-2"
+                  disabled={isSubmittingReport}
+                >
+                  {isSubmittingReport && <Loader2 className="animate-spin" size={20} />}
+                  Simpan Data
                 </Button>
               </div>
             </form>
